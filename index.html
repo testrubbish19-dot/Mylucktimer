@@ -1,0 +1,91 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Timer</title>
+    <!-- 允許全螢幕運行 -->
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="mobile-web-app-capable" content="yes">
+    <style>
+        body { display: flex; flex-direction: column; align-items: center; justify-content: center; height: 100vh; margin: 0; font-family: sans-serif; background: #ffffff; touch-action: manipulation; }
+        #inputSeconds { font-size: 30px; width: 80px; text-align: center; border: none; border-bottom: 2px solid #ddd; margin-bottom: 30px; outline: none; }
+        #timer { font-size: 150px; font-weight: bold; margin-bottom: 10px; line-height: 1; }
+        #counter { font-size: 50px; color: #aaa; height: 60px; margin-bottom: 30px; }
+        .controls { display: flex; gap: 30px; }
+        button { width: 70px; height: 70px; border-radius: 50%; border: none; cursor: pointer; transition: opacity 0.2s; }
+        button:active { opacity: 0.7; }
+        #start { background-color: #4CAF50; }
+        #pause { background-color: #f44336; }
+        #reset { background-color: #9e9e9e; }
+        input[type="checkbox"] { width: 30px; height: 30px; margin-top: 40px; cursor: pointer; accent-color: #9e9e9e; }
+    </style>
+</head>
+<body>
+
+    <input type="number" id="inputSeconds" value="10">
+    <div id="timer">10</div>
+    <div id="counter"></div>
+
+    <div class="controls">
+        <button id="start"></button>
+        <button id="pause"></button>
+        <button id="reset"></button>
+    </div>
+
+    <input type="checkbox" id="showCounter" checked>
+
+    <script>
+        let timeLeft, timerId, repeats = 0, isRunning = false;
+        const timerDisplay = document.getElementById('timer');
+        const counterDisplay = document.getElementById('counter');
+        const input = document.getElementById('inputSeconds');
+        const showCounterCb = document.getElementById('showCounter');
+
+        function updateDisplay() {
+            timerDisplay.textContent = timeLeft;
+            counterDisplay.textContent = showCounterCb.checked ? repeats : "";
+        }
+
+        document.getElementById('start').onclick = () => {
+            if (isRunning) return;
+            isRunning = true;
+            if (timeLeft === undefined || timeLeft <= 0) timeLeft = parseInt(input.value);
+            timerId = setInterval(() => {
+                timeLeft--;
+                if (timeLeft < 0) {
+                    repeats++;
+                    timeLeft = parseInt(input.value);
+                }
+                updateDisplay();
+            }, 1000);
+        };
+
+        document.getElementById('pause').onclick = () => {
+            clearInterval(timerId);
+            isRunning = false;
+        };
+
+        document.getElementById('reset').onclick = () => {
+            clearInterval(timerId);
+            isRunning = false;
+            timeLeft = parseInt(input.value);
+            repeats = 0;
+            updateDisplay();
+        };
+
+        showCounterCb.onchange = updateDisplay;
+        input.onchange = () => { if (!isRunning) { timeLeft = parseInt(input.value); updateDisplay(); } };
+
+        // 離線運行支援 (Service Worker)
+        if ('serviceWorker' in navigator) {
+            const swCode = `
+                self.addEventListener('install', e => e.waitUntil(caches.open('v1').then(c => c.addAll(['./']))));
+                self.addEventListener('fetch', e => e.respondWith(caches.match(e.request).then(r => r || fetch(e.request))));
+            `;
+            const blob = new Blob([swCode], {type: 'application/javascript'});
+            navigator.serviceWorker.register(URL.createObjectURL(blob));
+        }
+    </script>
+</body>
+</html>
